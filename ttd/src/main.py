@@ -137,6 +137,47 @@ def parse_drug_info(args):
     with open(out_file_path, 'w+') as out_stream:
         json.dump(drug_info, out_stream, indent=4)
 
+def parse_drug_db_mapping(args):
+
+    prop_label_mapping = {
+        'TTDDRUID':	'ttd_drug_id',
+        'DRUGNAME':	'drug_name',
+        'CASNUMBE':	'cas_number',
+        'D_FOMULA':	'formula',
+        'PUBCHCID':	'pubchem_cid',
+        'PUBCHSID':	'pubchem_sid',
+        'ChEBI_ID':	'chebi_id',
+        'SUPDRATC':	'superdrug_atc',
+        'SUPDRCAS':	'superdrug_cas'
+    }
+
+    drug_db_mapping = {}
+    with open(args['in_filepath'], 'r') as in_stream:
+
+        for ind, line in enumerate(in_stream):
+
+            if (ind+1) < args['data_start_from_line']:
+                continue
+
+            line = line.strip()
+            if line == '':
+                continue
+
+            token_list = line.split('\t')
+            ttd_drug_id = token_list[0]
+            ttd_prop = token_list[1]
+            ttd_val = token_list[2] 
+            label = prop_label_mapping[ttd_prop]
+
+            if (ttd_drug_id in drug_db_mapping) == False:
+                drug_db_mapping[ttd_drug_id] = {}
+
+            drug_db_mapping[ttd_drug_id][label] = ttd_val.strip()
+
+    out_file_path = os.path.join(args['out_dir_path'], 'drug_db_mapping.json')
+    with open(out_file_path, 'w+') as out_stream:
+        json.dump(drug_db_mapping, out_stream, indent=4)
+
 
 def main(args):
     print_x("main: starting...")
@@ -157,12 +198,19 @@ def main(args):
     # }
     # parse_biomarker_disease_mapping(f_args)
 
+    # f_args = {
+    #     'in_filepath': os.path.join(args['data_dir_path'], 'P1-02-TTD_drug_download.txt'),
+    #     'data_start_from_line': int(args['drug_info_start_line']),
+    #     'out_dir_path': args['out_dir_path']
+    # }
+    # parse_drug_info(f_args)
+
     f_args = {
-        'in_filepath': os.path.join(args['data_dir_path'], 'P1-02-TTD_drug_download.txt'),
-        'data_start_from_line': int(args['drug_info_start_line']),
+        'in_filepath': os.path.join(args['data_dir_path'], 'P1-03-TTD_crossmatching.txt'),
+        'data_start_from_line': int(args['drug_db_mapping_start_line']),
         'out_dir_path': args['out_dir_path']
     }
-    parse_drug_info(f_args)
+    parse_drug_db_mapping(f_args)
 
     print_x("main: ending...")
 
@@ -173,6 +221,7 @@ if __name__ == '__main__':
         'drug_disease_mapping_data_start_line': '23',
         'biomarker_disease_mapping_data_start_line': '17',
         'drug_info_start_line': '30',
+        'drug_db_mapping_start_line': '29',
         'out_dir_path': '../out'
     }
 
