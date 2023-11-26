@@ -94,6 +94,50 @@ def parse_biomarker_disease_mapping(args):
     with open(out_filepath, 'w') as out_stream:
         json.dump(biomarker_disease_mapping, out_stream, indent=4)
 
+def parse_drug_info(args):
+
+    prop_to_label_mapping = {
+        'DRUG__ID':	'ttd_drug_id',
+        'TRADNAME':	'drug_trade_name',
+        'DRUGCOMP':	'drug_company',
+        'THERCLAS':	'drug_therapeutic_class',
+        'DRUGTYPE':	'drug_type',
+        'DRUGINCH':	'inchi',
+        'DRUGINKE':	'inchi_key',
+        'DRUGSMIL':	'canonical_smiles',
+        'HIGHSTAT':	'highest_status',
+        'DRUGCLAS':	'drug_class',
+        'DRUADIID': 'adi_id',
+        'COMPCLAS':	'compound_class'
+    }
+    drug_info = {}
+
+    with open(args['in_filepath'], 'r') as in_stream:
+
+        for ind, line in enumerate(in_stream):
+            if (ind+1) < args['data_start_from_line']:
+                continue
+
+            line = line.strip()
+            if line == '':
+                continue
+
+            token_list = line.split('\t')
+            ttd_drug_id = token_list[0]
+            drug_prop = token_list[1]
+            prop_value = token_list[2]
+
+            label = prop_to_label_mapping[drug_prop]
+            if (ttd_drug_id in drug_info) == False:
+                drug_info[ttd_drug_id] = {}
+
+            drug_info[ttd_drug_id][label] = prop_value.strip()
+
+    out_file_path = os.path.join(args['out_dir_path'], 'drug_info.json')
+    with open(out_file_path, 'w+') as out_stream:
+        json.dump(drug_info, out_stream, indent=4)
+
+
 def main(args):
     print_x("main: starting...")
 
@@ -106,12 +150,19 @@ def main(args):
     # }
     # parse_drug_disease_mapping(f_args)
 
+    # f_args = {
+    #     'in_filepath': os.path.join(args['data_dir_path'], 'P1-08-Biomarker_disease.txt'),
+    #     'data_start_from_line': int(args['biomarker_disease_mapping_data_start_line']),
+    #     'out_dir_path': args['out_dir_path']
+    # }
+    # parse_biomarker_disease_mapping(f_args)
+
     f_args = {
-        'in_filepath': os.path.join(args['data_dir_path'], 'P1-08-Biomarker_disease.txt'),
-        'data_start_from_line': int(args['biomarker_disease_mapping_data_start_line']),
+        'in_filepath': os.path.join(args['data_dir_path'], 'P1-02-TTD_drug_download.txt'),
+        'data_start_from_line': int(args['drug_info_start_line']),
         'out_dir_path': args['out_dir_path']
     }
-    parse_biomarker_disease_mapping(f_args)
+    parse_drug_info(f_args)
 
     print_x("main: ending...")
 
@@ -121,6 +172,7 @@ if __name__ == '__main__':
         'data_dir_path': '../data',
         'drug_disease_mapping_data_start_line': '23',
         'biomarker_disease_mapping_data_start_line': '17',
+        'drug_info_start_line': '30',
         'out_dir_path': '../out'
     }
 
