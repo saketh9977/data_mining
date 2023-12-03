@@ -43,19 +43,18 @@ def clear_nodes(nodes_to_clear):
     for node in nodes_to_clear:
         node.clear()
 
-def parse_xml(in_filepath, out_folderpath):
+def parse_xml(args):
 
     """
-        37 MB peak Memory usage for 580 MB xml
-        278 MB peak Memory usage for 4.7 GB xml (2m 30s runtime). 
-            this is due to: parsed JSON (138 MB) is stored in Memory
+        11.2 MB peak Memory usage for 580 MB xml
+        30 MB peak Memory usage for 4.7 GB xml (2m 15s runtime)
+            parsed_node_list is written to disk every batch of 100 records
     """
 
-    os.makedirs(out_folderpath, exist_ok=True)
     parsed_node_list = []
     parsed_node_dict = {}
     nodes_to_clear = []
-    for _, node in ET.iterparse(in_filepath):
+    for _, node in ET.iterparse(args['in_filepath']):
         
         if '}' in node.tag:
             node.tag = node.tag.split('}')[-1]
@@ -65,6 +64,10 @@ def parse_xml(in_filepath, out_folderpath):
             parsed_node_dict = {}
             clear_nodes(nodes_to_clear)
             nodes_to_clear = []
+
+            if len(parsed_node_list) >= args['batch_size']:
+                yield parsed_node_list
+                parsed_node_list = []
 
             # to-do: remove this
             # if len(parsed_node_list) >= 2:
@@ -144,9 +147,5 @@ def parse_xml(in_filepath, out_folderpath):
         nodes_to_clear.append(node)
                 
 
-    if len(parsed_node_dict) != 0:
-        parsed_node_list.append(parsed_node_dict)
-
-    out_filepath = os.path.join(out_folderpath, 'parsed.json')
-    with open(out_filepath, 'w+') as out_stream:
-        json.dump(parsed_node_list, out_stream, indent=4)
+    if len(parsed_node_list) != 0:
+        yield parsed_node_list
