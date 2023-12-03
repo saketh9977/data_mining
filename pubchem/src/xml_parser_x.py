@@ -1,4 +1,4 @@
-from xml.etree import ElementTree as ET
+from xml.etree import cElementTree as ET
 
 import os
 import json
@@ -34,100 +34,119 @@ def get_infodata(node, label, name=None, type_='sval'):
         return
     return val.text
 
+def clear_nodes(nodes_to_clear):
+
+    """
+        remove nodes from memory (RAM)
+    """
+
+    for node in nodes_to_clear:
+        node.clear()
+
 def parse_xml(in_filepath, out_folderpath):
 
+    """
+        37 MB peak Memory usage for 580 MB xml
+        278 MB peak Memory usage for 4.7 GB xml (2m 30s runtime). 
+            this is due to: parsed JSON (138 MB) is stored in Memory
+    """
+
     os.makedirs(out_folderpath, exist_ok=True)
-    node_list = []
-    node_data = {}
+    parsed_node_list = []
+    parsed_node_dict = {}
+    nodes_to_clear = []
     for _, node in ET.iterparse(in_filepath):
         
         if '}' in node.tag:
             node.tag = node.tag.split('}')[-1]
         
         if node.tag == 'PC-Compound':
-            node_list.append(node_data)
-            node_data = {}
+            parsed_node_list.append(parsed_node_dict)
+            parsed_node_dict = {}
+            clear_nodes(nodes_to_clear)
+            nodes_to_clear = []
 
             # to-do: remove this
-            if len(node_list) >= 2:
-                break
+            # if len(parsed_node_list) >= 2:
+            #     break
 
-        if node.tag == 'PC-CompoundType_id_cid':
-            node_data['cid'] = node.text
+        elif node.tag == 'PC-CompoundType_id_cid':
+            parsed_node_dict['cid'] = node.text
 
-        if node.tag == 'PC-Compound_charge':
-            node_data['charge'] = node.text
+        elif node.tag == 'PC-Compound_charge':
+            parsed_node_dict['charge'] = node.text
 
-        res = get_infodata(node, 'Compound Complexity', type_='fval')
-        if res != None:
-            node_data['compound_complexity'] = res
+        elif node.tag == 'PC-InfoData':
+            res = get_infodata(node, 'Compound Complexity', type_='fval')
+            if res != None:
+                parsed_node_dict['compound_complexity'] = res
 
-        res = get_infodata(node, 'Count', name='Hydrogen Bond Acceptor', type_='ival')
-        if res != None:
-            node_data['count_hydrogen_bond_acceptor'] = res
+            res = get_infodata(node, 'Count', name='Hydrogen Bond Acceptor', type_='ival')
+            if res != None:
+                parsed_node_dict['count_hydrogen_bond_acceptor'] = res
 
-        res = get_infodata(node, 'Count', name='Hydrogen Bond Donor', type_='ival')
-        if res != None:
-            node_data['count_hydrogen_bond_donor'] = res
+            res = get_infodata(node, 'Count', name='Hydrogen Bond Donor', type_='ival')
+            if res != None:
+                parsed_node_dict['count_hydrogen_bond_donor'] = res
 
-        res = get_infodata(node, 'Count', name='Rotatable Bond', type_='ival')
-        if res != None:
-            node_data['count_rotatable_bond'] = res
+            res = get_infodata(node, 'Count', name='Rotatable Bond', type_='ival')
+            if res != None:
+                parsed_node_dict['count_rotatable_bond'] = res
 
-        res = get_infodata(node, 'Fingerprint', name='SubStructure Keys', type_='binary')
-        if res != None:
-            node_data['fingerprint_substructurekeys'] = res
-        
-        res = get_infodata(node, 'IUPAC Name', name='Allowed')
-        if res != None:
-            node_data['iupac'] = res
-        
-        res = get_infodata(node, 'InChI', name='Standard')
-        if res != None:
-            node_data['inchi'] = res
-        
-        res = get_infodata(node, 'InChIKey', name='Standard')
-        if res != None:
-            node_data['inchi_key'] = res
-
-        res = get_infodata(node, 'Log P', type_='fval')
-        if res != None:
-            node_data['log_p'] = res
-
-        res = get_infodata(node, 'Mass')
-        if res != None:
-            node_data['mass'] = res
-
-        res = get_infodata(node, 'Molecular Formula')
-        if res != None:
-            node_data['molecular_formula'] = res
-
-        res = get_infodata(node, 'Molecular Weight')
-        if res != None:
-            node_data['molecular_weight'] = res
-
-        res = get_infodata(node, 'SMILES', name='Canonical')
-        if res != None:
-            node_data['smiles_canonical'] = res
-
-        res = get_infodata(node, 'SMILES', name='Isomeric')
-        if res != None:
-            node_data['smiles_isomeric'] = res
-
-        res = get_infodata(node, 'Topological', name='Polar Surface Area', type_='fval')
-        if res != None:
-            node_data['polar_surface_area'] = res
-
-        res = get_infodata(node, 'Weight', name='MonoIsotopic')
-        if res != None:
-            node_data['weight_monoisotopic'] = res
-
-        
+            res = get_infodata(node, 'Fingerprint', name='SubStructure Keys', type_='binary')
+            if res != None:
+                parsed_node_dict['fingerprint_substructurekeys'] = res
             
+            res = get_infodata(node, 'IUPAC Name', name='Allowed')
+            if res != None:
+                parsed_node_dict['iupac'] = res
+            
+            res = get_infodata(node, 'InChI', name='Standard')
+            if res != None:
+                parsed_node_dict['inchi'] = res
+            
+            res = get_infodata(node, 'InChIKey', name='Standard')
+            if res != None:
+                parsed_node_dict['inchi_key'] = res
 
-    if len(node_data) != 0:
-        node_list.append(node_data)
+            res = get_infodata(node, 'Log P', type_='fval')
+            if res != None:
+                parsed_node_dict['log_p'] = res
+
+            res = get_infodata(node, 'Mass')
+            if res != None:
+                parsed_node_dict['mass'] = res
+
+            res = get_infodata(node, 'Molecular Formula')
+            if res != None:
+                parsed_node_dict['molecular_formula'] = res
+
+            res = get_infodata(node, 'Molecular Weight')
+            if res != None:
+                parsed_node_dict['molecular_weight'] = res
+
+            res = get_infodata(node, 'SMILES', name='Canonical')
+            if res != None:
+                parsed_node_dict['smiles_canonical'] = res
+
+            res = get_infodata(node, 'SMILES', name='Isomeric')
+            if res != None:
+                parsed_node_dict['smiles_isomeric'] = res
+
+            res = get_infodata(node, 'Topological', name='Polar Surface Area', type_='fval')
+            if res != None:
+                parsed_node_dict['polar_surface_area'] = res
+
+            res = get_infodata(node, 'Weight', name='MonoIsotopic')
+            if res != None:
+                parsed_node_dict['weight_monoisotopic'] = res
+        
+        nodes_to_clear.append(node)
+                
+
+    if len(parsed_node_dict) != 0:
+        parsed_node_list.append(parsed_node_dict)
 
     out_filepath = os.path.join(out_folderpath, 'parsed.json')
     with open(out_filepath, 'w+') as out_stream:
-        json.dump(node_list, out_stream, indent=4)
+        json.dump(parsed_node_list, out_stream, indent=4)
